@@ -21043,6 +21043,46 @@ const struct flashchip flashchips[] = {
 		.write		= 0,
 	},
 
+	{// XTX
+		.vendor		= "XTX",
+		.name		= "XT25F64B",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= XTX_ID,
+		.model_id	= XTX_XT25F64B,
+		.total_size	= 8192,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_UNTESTED,
+		.probe		= PROBE_SPI_RDID,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	={},
+		.printlock	= spi_prettyprint_status_register_plain,
+		.unlock		= spi_disable_blockprotect,
+		.write		= SPI_CHIP_WRITE256,
+		.read		= SPI_CHIP_READ,
+		.voltage	= {2700, 3600},
+	},
+
+	{// PUYA
+		.vendor = "Puya",
+		.name = "P25Q80H",
+		.bustype = BUS_SPI,
+		.manufacture_id = PUYA_ID,
+		.model_id = PUYA_P25Q80H,
+		.total_size = 1024,
+		.page_size = 256,
+		.feature_bits = FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested = TEST_UNTESTED,
+		.probe = PROBE_SPI_RDID,
+		.probe_timing = TIMING_ZERO,
+		.block_erasers = {},
+		.printlock = spi_prettyprint_status_register_plain,
+		.unlock = spi_disable_blockprotect,
+		.write = 0,
+		.read = SPI_CHIP_READ,
+		.voltage = {2300, 3600},
+	},
+
 	{0}
 };
 

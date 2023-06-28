@@ -99,7 +99,8 @@ static void cli_classic_usage(const char *name)
 		   "\t[-V[V[V]]] [-o <logfile>]\n\n",
 		   name);
 
-	printf(" -h | --help                        print this help text\n"
+	printf(" -a | --append                      dynamic add chip\n"
+		   " -h | --help                        print this help text\n"
 		   " -R | --version                     print version (release)\n"
 		   " -r | --read <file>                 read flash and save to <file>\n"
 		   " -w | --write (<file>|-)            write <file> or the content provided\n"

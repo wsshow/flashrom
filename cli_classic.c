@@ -79,6 +79,7 @@ struct cli_options
 	bool show_progress;
 	// Add chip models dynamically (ws)
 	bool auto_extend;
+	char *append;
 	char *logfile;
 	char *referencefile;
 	const char *chip_to_probe;
@@ -894,6 +895,9 @@ static void parse_options(int argc, char **argv, const char *optstring,
 			// Add chip models dynamically (ws)
 			options->auto_extend = true;
 			break;
+		case 'a':
+			options->append = strdup(optarg);
+			break;
 		default:
 			cli_classic_abort_usage(NULL);
 			break;
@@ -914,6 +918,7 @@ static void free_options(struct cli_options *options)
 	free(options->pparam);
 	free(options->wp_region);
 	free(options->logfile);
+	free(options->append);
 	free((char *)options->chip_to_probe);
 }
 
@@ -929,8 +934,9 @@ int main(int argc, char *argv[])
 	int ret = 0;
 
 	struct cli_options options = {0};
-	static const char optstring[] = "r:Rw:v:nNVEfc:l:i:p:Lzho:x";
+	static const char optstring[] = "r:Rw:v:nNVEfc:l:i:p:Lzho:xa:";
 	static const struct option long_options[] = {
+		{"append", 1, NULL, 'a'},
 		{"read", 1, NULL, 'r'},
 		{"write", 1, NULL, 'w'},
 		{"erase", 0, NULL, 'E'},
@@ -989,6 +995,12 @@ int main(int argc, char *argv[])
 	setbuf(stdout, NULL);
 
 	parse_options(argc, argv, optstring, long_options, &options);
+
+	if (options.append)
+	{
+		printf("%s", options.append);
+		goto out;
+	}
 
 	if ((options.read_it | options.write_it | options.verify_it) && check_filename(options.filename, "image"))
 		cli_classic_abort_usage(NULL);

@@ -1307,7 +1307,7 @@ int probe_flash_dynamic_extend(struct registered_master *mst, struct flashchip *
 		 * one for this programmer interface (master) and thus no other chip has
 		 * been found on this interface.
 		 */
-		if (startchip == 0 && flash->chip->model_id == SFDP_DEVICE_ID)
+		if (flash->chip->model_id == SFDP_DEVICE_ID)
 		{
 			msg_cinfo("===\n"
 					  "SFDP has autodetected a flash chip which is "
@@ -1331,9 +1331,6 @@ int probe_flash_dynamic_extend(struct registered_master *mst, struct flashchip *
 					  "===\n");
 		}
 
-		/* First flash chip detected on this bus. */
-		if (startchip == 0)
-			break;
 		/* Not the first flash chip detected on this bus, but not a generic match either. */
 		if ((flash->chip->model_id != GENERIC_DEVICE_ID) && (flash->chip->model_id != SFDP_DEVICE_ID))
 			break;
@@ -1373,7 +1370,7 @@ int probe_flash_dynamic_extend(struct registered_master *mst, struct flashchip *
 	unmap_flash(flash);
 
 	/* Return position of matching chip. */
-	return chip - flashchips;
+	return 0;
 }
 
 int probe_flash(struct registered_master *mst, int startchip, struct flashctx *flash, int force, const char *const chip_to_probe)

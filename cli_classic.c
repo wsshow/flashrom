@@ -896,7 +896,7 @@ static void parse_options(int argc, char **argv, const char *optstring,
 		case OPTION_AUTO:
 			options->auto_extend = true;
 			break;
-		case 'a':
+		case 'e':
 			options->dynamic_extend = strdup(optarg);
 			break;
 		default:
@@ -923,7 +923,7 @@ static void free_options(struct cli_options *options)
 	free((char *)options->chip_to_probe);
 }
 
-enum chipbustype get_chipbustype(const char *t)
+static enum chipbustype get_chipbustype(const char *t)
 {
 	if (strcmp(t, "BUS_SPI") == 0)
 	{
@@ -932,16 +932,17 @@ enum chipbustype get_chipbustype(const char *t)
 	return BUS_NONE;
 }
 
-int parse_flashchip(const char *data, struct flashchip *chip)
+static int parse_flashchip(const char *data, struct flashchip *chip)
 {
 	cJSON *cjson_obj = NULL;
 	cJSON *cjson_vendor = NULL;
 	cJSON *cjson_name = NULL;
 	cJSON *cjson_bustype = NULL;
+
 	cjson_obj = cJSON_Parse(data);
 	if (cjson_obj == NULL)
 	{
-		printf("parse fail.\n");
+		printf("flashchip parse fail.\n");
 		return -1;
 	}
 
@@ -949,15 +950,12 @@ int parse_flashchip(const char *data, struct flashchip *chip)
 	cjson_name = cJSON_GetObjectItem(cjson_obj, "name");
 	cjson_bustype = cJSON_GetObjectItem(cjson_obj, "bustype");
 
-	printf("vendor: %s\n", cjson_vendor->valuestring);
-	printf("name: %s\n", cjson_name->valuestring);
-	printf("bustype: %s\n", cjson_bustype->valuestring);
-
-	printf("%d", m(cjson_bustype->valuestring));
-
 	chip->name = cjson_name->valuestring;
 	chip->vendor = cjson_vendor->valuestring;
 	chip->bustype = get_chipbustype(cjson_bustype->valuestring);
+
+	char *str = cJSON_Print(cjson_obj);
+	printf("%s\n", str);
 
 	cJSON_Delete(cjson_obj);
 	return 0;
@@ -1027,8 +1025,8 @@ int main(int argc, char *argv[])
 		flashrom_set_log_callback(&flashrom_print_cb);
 	}
 
-	print_version();
-	print_banner();
+	// print_version();
+	// print_banner();
 
 	/* FIXME: Delay calibration should happen in programmer code. */
 	if (flashrom_init(1))
@@ -1037,6 +1035,25 @@ int main(int argc, char *argv[])
 	setbuf(stdout, NULL);
 
 	parse_options(argc, argv, optstring, long_options, &options);
+
+	if (options.dynamic_extend)
+	{
+		printf("%s\n", options.dynamic_extend);
+		struct flashchip *extend_chip = NULL;
+		extend_chip = malloc(sizeof(struct flashchip));
+		if (extend_chip == NULL)
+		{
+			goto out;
+		}
+		if (parse_flashchip(options.dynamic_extend, extend_chip) != 0)
+		{
+			msg_perr("Error: Dynamic extend chip parse failed.\n");
+			ret = 1;
+		}
+		free(extend_chip);
+		extend_chip = NULL;
+		goto out;
+	}
 
 	if ((options.read_it | options.write_it | options.verify_it) && check_filename(options.filename, "image"))
 		cli_classic_abort_usage(NULL);
@@ -1144,9 +1161,9 @@ int main(int argc, char *argv[])
 	if (options.dynamic_extend)
 	{
 		printf("%s", options.dynamic_extend);
-		struct flashchip *chip = NULL;
+		struct flashchip *extend_chip = NULL;
 		// TODO: fill chip by cJSON
-		if (parse_flashchip(options.dynamic_extend, chip) != 0)
+		if (parse_flashchip(options.dynamic_extend, extend_chip) != 0)
 		{
 			msg_perr("Error: Dynamic extend chip parse failed.\n");
 			ret = 1;
@@ -1157,7 +1174,7 @@ int main(int argc, char *argv[])
 			startchip = 0;
 			while (chipcount < (int)ARRAY_SIZE(flashes))
 			{
-				startchip = probe_flash_dynamic_extend(&registered_masters[j], chip, &flashes[chipcount]);
+				startchip = probe_flash_dynamic_extend(&registered_masters[j], extend_chip, &flashes[chipcount]);
 				if (startchip == -1)
 					break;
 				chipcount++;

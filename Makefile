@@ -391,7 +391,7 @@ CHIP_OBJS = jedec.o printlock.o stm50.o w39.o w29ee011.o \
 ###############################################################################
 # Library code.
 
-LIB_OBJS = libflashrom.o layout.o erasure_layout.o flashrom.o udelay.o parallel.o programmer.o programmer_table.o \
+LIB_OBJS = cJSON.o libflashrom.o layout.o erasure_layout.o flashrom.o udelay.o parallel.o programmer.o programmer_table.o \
 	helpers.o helpers_fileio.o ich_descriptors.o fmap.o platform/endian_$(ENDIAN).o platform/memaccess.o
 
 
@@ -1021,6 +1021,9 @@ config:
 	fi
 	@echo "Checking for program \"sphinx-build\": $(HAS_SPHINXBUILD)"
 
+cJSON.o:cJSON/cJSON.c
+	$(CC) -MMD $(CFLAGS) $(CPPFLAGS) $(FLASHROM_CFLAGS) $(FEATURE_FLAGS) -D'FLASHROM_VERSION=$(VERSION)'  -o $@ -c $<
+
 %.o: %.c | config
 	$(CC) -MMD $(CFLAGS) $(CPPFLAGS) $(FLASHROM_CFLAGS) $(FEATURE_FLAGS) -D'FLASHROM_VERSION=$(VERSION)'  -o $@ -c $<
 
@@ -1052,6 +1055,7 @@ strip: $(PROGRAM)$(EXEC_SUFFIX)
 clean:
 	rm -rf $(PROGRAM) $(PROGRAM).exe libflashrom.a $(filter-out Makefile.d, $(wildcard *.d *.o platform/*.d platform/*.o)) \
 		man8 .doctrees $(PROGRAM).bash $(BUILD_DETAILS_FILE)
+	rm -f ./cJSON/cJSON.o ./cJSON/cJSON.d
 	@+$(MAKE) -C util/ich_descriptors_tool/ clean
 
 install: $(PROGRAM)$(EXEC_SUFFIX) $(call has_dependency, $(HAS_SPHINXBUILD), man8/$(PROGRAM).8) $(PROGRAM).bash

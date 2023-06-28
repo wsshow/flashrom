@@ -30,6 +30,7 @@
 #include "fmap.h"
 #include "programmer.h"
 #include "libflashrom.h"
+#include "cJSON/cJSON.h"
 
 enum
 {
@@ -922,6 +923,46 @@ static void free_options(struct cli_options *options)
 	free((char *)options->chip_to_probe);
 }
 
+enum chipbustype get_chipbustype(const char *t)
+{
+	if (strcmp(t, "BUS_SPI") == 0)
+	{
+		return BUS_SPI;
+	}
+	return BUS_NONE;
+}
+
+int parse_flashchip(const char *data, struct flashchip *chip)
+{
+	cJSON *cjson_obj = NULL;
+	cJSON *cjson_vendor = NULL;
+	cJSON *cjson_name = NULL;
+	cJSON *cjson_bustype = NULL;
+	cjson_obj = cJSON_Parse(data);
+	if (cjson_obj == NULL)
+	{
+		printf("parse fail.\n");
+		return -1;
+	}
+
+	cjson_vendor = cJSON_GetObjectItem(cjson_obj, "vendor");
+	cjson_name = cJSON_GetObjectItem(cjson_obj, "name");
+	cjson_bustype = cJSON_GetObjectItem(cjson_obj, "bustype");
+
+	printf("vendor: %s\n", cjson_vendor->valuestring);
+	printf("name: %s\n", cjson_name->valuestring);
+	printf("bustype: %s\n", cjson_bustype->valuestring);
+
+	printf("%d", m(cjson_bustype->valuestring));
+
+	chip->name = cjson_name->valuestring;
+	chip->vendor = cjson_vendor->valuestring;
+	chip->bustype = get_chipbustype(cjson_bustype->valuestring);
+
+	cJSON_Delete(cjson_obj);
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	const struct flashchip *chip = NULL;
@@ -1105,7 +1146,12 @@ int main(int argc, char *argv[])
 		printf("%s", options.dynamic_extend);
 		struct flashchip *chip = NULL;
 		// TODO: fill chip by cJSON
-
+		if (parse_flashchip(options.dynamic_extend, chip) != 0)
+		{
+			msg_perr("Error: Dynamic extend chip parse failed.\n");
+			ret = 1;
+			goto out_shutdown;
+		}
 		for (j = 0; j < registered_master_count; j++)
 		{
 			startchip = 0;

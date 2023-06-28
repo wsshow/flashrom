@@ -77,9 +77,8 @@ struct cli_options
 	bool force;
 	bool flash_name, flash_size;
 	bool show_progress;
-	// Add chip models dynamically (ws)
 	bool auto_extend;
-	char *append;
+	char *dynamic_extend;
 	char *logfile;
 	char *referencefile;
 	const char *chip_to_probe;
@@ -99,7 +98,8 @@ static void cli_classic_usage(const char *name)
 		   "\t[-V[V[V]]] [-o <logfile>]\n\n",
 		   name);
 
-	printf(" -a | --append                      dynamic add chip\n"
+	printf(" -a | --auto-extend                 auto extend chip\n"
+		   " -e | --dynamic-extend              dynamic extend chip\n"
 		   " -h | --help                        print this help text\n"
 		   " -R | --version                     print version (release)\n"
 		   " -r | --read <file>                 read flash and save to <file>\n"
@@ -893,11 +893,10 @@ static void parse_options(int argc, char **argv, const char *optstring,
 			options->show_progress = true;
 			break;
 		case OPTION_AUTO:
-			// Add chip models dynamically (ws)
 			options->auto_extend = true;
 			break;
 		case 'a':
-			options->append = strdup(optarg);
+			options->dynamic_extend = strdup(optarg);
 			break;
 		default:
 			cli_classic_abort_usage(NULL);
@@ -919,7 +918,7 @@ static void free_options(struct cli_options *options)
 	free(options->pparam);
 	free(options->wp_region);
 	free(options->logfile);
-	free(options->append);
+	free(options->dynamic_extend);
 	free((char *)options->chip_to_probe);
 }
 
@@ -935,9 +934,10 @@ int main(int argc, char *argv[])
 	int ret = 0;
 
 	struct cli_options options = {0};
-	static const char optstring[] = "r:Rw:v:nNVEfc:l:i:p:Lzho:xa:";
+	static const char optstring[] = "r:Rw:v:nNVEfc:l:i:p:Lzho:xe:a";
 	static const struct option long_options[] = {
-		{"append", 1, NULL, 'a'},
+		{"auto-extend", 0, NULL, 'a'},
+		{"dynamic-extend", 1, NULL, 'e'},
 		{"read", 1, NULL, 'r'},
 		{"write", 1, NULL, 'w'},
 		{"erase", 0, NULL, 'E'},
@@ -996,12 +996,6 @@ int main(int argc, char *argv[])
 	setbuf(stdout, NULL);
 
 	parse_options(argc, argv, optstring, long_options, &options);
-
-	if (options.append)
-	{
-		printf("%s", options.append);
-		goto out;
-	}
 
 	if ((options.read_it | options.write_it | options.verify_it) && check_filename(options.filename, "image"))
 		cli_classic_abort_usage(NULL);
@@ -1105,6 +1099,28 @@ int main(int argc, char *argv[])
 	msg_pdbg("The following protocols are supported: %s.\n", tempstr ? tempstr : "?");
 	free(tempstr);
 
+	// TODO: 动态读取芯片
+	if (options.dynamic_extend)
+	{
+		printf("%s", options.dynamic_extend);
+		struct flashchip *chip = NULL;
+		// TODO: fill chip by cJSON
+
+		for (j = 0; j < registered_master_count; j++)
+		{
+			startchip = 0;
+			while (chipcount < (int)ARRAY_SIZE(flashes))
+			{
+				startchip = probe_flash_dynamic_extend(&registered_masters[j], chip, &flashes[chipcount]);
+				if (startchip == -1)
+					break;
+				chipcount++;
+				startchip++;
+			}
+		}
+		goto dynamic_extend;
+	}
+
 	for (j = 0; j < registered_master_count; j++)
 	{
 		startchip = 0;
@@ -1191,6 +1207,7 @@ int main(int argc, char *argv[])
 		free(tempstr);
 	}
 
+dynamic_extend:
 	fill_flash = &flashes[0];
 
 	unsigned int progress_user_data[FLASHROM_PROGRESS_NR];

@@ -1248,13 +1248,13 @@ static probe_func_t *lookup_probe_func_ptr(const struct flashchip *chip)
 	return NULL;
 }
 
-// TODO: for dynamic_extend
+// ws: for dynamic_extend
 int probe_flash_dynamic_extend(struct registered_master *mst, struct flashchip *chip, struct flashctx *flash)
 {
 	enum chipbustype buses_common;
 	char *tmp;
 
-	int force = 0;
+	int force = 1;
 	const char *const chip_to_probe = chip->name;
 
 	int index = 0;

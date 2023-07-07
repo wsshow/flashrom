@@ -1186,6 +1186,7 @@ int main(int argc, char *argv[])
 	{
 		printf("%s", options.dynamic_extend);
 		struct flashchip *extend_chip = NULL;
+		extend_chip = malloc(sizeof(struct flashchip));
 		if (parse_flashchip(options.dynamic_extend, extend_chip) != 0)
 		{
 			msg_perr("Error: Dynamic extend chip parse failed.\n");
@@ -1203,6 +1204,11 @@ int main(int argc, char *argv[])
 				chipcount++;
 				startchip++;
 			}
+		}
+		if (!chipcount)
+		{
+			msg_cinfo("No EEPROM/flash device found.\n");
+			goto out_shutdown;
 		}
 		goto dynamic_extend;
 	}

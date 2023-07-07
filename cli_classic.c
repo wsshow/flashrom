@@ -923,7 +923,7 @@ static void free_options(struct cli_options *options)
 	free((char *)options->chip_to_probe);
 }
 
-static enum chipbustype get_chipbustype(const char *t)
+static enum chipbustype get_bustype(const char *t)
 {
 	if (strcmp(t, "BUS_SPI") == 0)
 	{
@@ -932,32 +932,75 @@ static enum chipbustype get_chipbustype(const char *t)
 	return BUS_NONE;
 }
 
+static enum chipbustype get_feature_bits(const char *t)
+{
+	if (strcmp(t, "FEATURE_WRSR_WREN") == 0)
+	{
+		return FEATURE_WRSR_WREN;
+	}
+	else if (strcmp(t, "FEATURE_WRSR_WREN|FEATURE_OTP") == 0)
+	{
+		return FEATURE_WRSR_WREN | FEATURE_OTP;
+	}
+	return FEATURE_WRSR_WREN;
+}
+
 static int parse_flashchip(const char *data, struct flashchip *chip)
 {
 	cJSON *cjson_obj = NULL;
 	cJSON *cjson_vendor = NULL;
 	cJSON *cjson_name = NULL;
 	cJSON *cjson_bustype = NULL;
+	cJSON *cjson_manufacture_id = NULL;
+	cJSON *cjson_model_id = NULL;
+	cJSON *cjson_total_size = NULL;
+	cJSON *cjson_page_size = NULL;
+	cJSON *cjson_feature_bits = NULL;
+	cJSON *cjson_voltage = NULL;
+	cJSON *cjson_voltage_min = NULL;
+	cJSON *cjson_voltage_max = NULL;
 
 	cjson_obj = cJSON_Parse(data);
 	if (cjson_obj == NULL)
 	{
-		printf("flashchip parse fail.\n");
+		printf("flashchip json parse fail.\n");
 		return -1;
 	}
 
 	cjson_vendor = cJSON_GetObjectItem(cjson_obj, "vendor");
 	cjson_name = cJSON_GetObjectItem(cjson_obj, "name");
 	cjson_bustype = cJSON_GetObjectItem(cjson_obj, "bustype");
+	cjson_manufacture_id = cJSON_GetObjectItem(cjson_obj, "manufacture_id");
+	cjson_model_id = cJSON_GetObjectItem(cjson_obj, "model_id");
+	cjson_total_size = cJSON_GetObjectItem(cjson_obj, "total_size");
+	cjson_page_size = cJSON_GetObjectItem(cjson_obj, "page_size");
+	cjson_feature_bits = cJSON_GetObjectItem(cjson_obj, "feature_bits");
+	cjson_voltage = cJSON_GetObjectItem(cjson_obj, "voltage");
+	cjson_voltage_min = cJSON_GetObjectItem(cjson_voltage, "min");
+	cjson_voltage_max = cJSON_GetObjectItem(cjson_voltage, "max");
 
 	chip->name = cjson_name->valuestring;
 	chip->vendor = cjson_vendor->valuestring;
-	chip->bustype = get_chipbustype(cjson_bustype->valuestring);
+	chip->bustype = get_bustype(cjson_bustype->valuestring);
+	chip->manufacture_id = cjson_manufacture_id->valueint;
+	chip->model_id = cjson_model_id->valueint;
+	chip->total_size = cjson_total_size->valueint;
+	chip->page_size = cjson_page_size->valueint;
+	chip->feature_bits = get_feature_bits(cjson_feature_bits->valuestring);
+	chip->tested = TEST_UNTESTED;
+	chip->probe_timing = TIMING_ZERO;
+	chip->printlock = SPI_PRETTYPRINT_STATUS_REGISTER_PLAIN;
+	chip->unlock = SPI_DISABLE_BLOCKPROTECT;
+	chip->write = SPI_CHIP_WRITE256;
+	chip->read = SPI_CHIP_READ;
+	chip->voltage.min = cjson_voltage_min->valueint;
+	chip->voltage.max = cjson_voltage_max->valueint;
 
 	char *str = cJSON_Print(cjson_obj);
 	printf("%s\n", str);
+	free(str);
 
-	cJSON_Delete(cjson_obj);
+	// cJSON_Delete(cjson_obj);
 	return 0;
 }
 
@@ -1035,25 +1078,6 @@ int main(int argc, char *argv[])
 	setbuf(stdout, NULL);
 
 	parse_options(argc, argv, optstring, long_options, &options);
-
-	if (options.dynamic_extend)
-	{
-		printf("%s\n", options.dynamic_extend);
-		struct flashchip *extend_chip = NULL;
-		extend_chip = malloc(sizeof(struct flashchip));
-		if (extend_chip == NULL)
-		{
-			goto out;
-		}
-		if (parse_flashchip(options.dynamic_extend, extend_chip) != 0)
-		{
-			msg_perr("Error: Dynamic extend chip parse failed.\n");
-			ret = 1;
-		}
-		free(extend_chip);
-		extend_chip = NULL;
-		goto out;
-	}
 
 	if ((options.read_it | options.write_it | options.verify_it) && check_filename(options.filename, "image"))
 		cli_classic_abort_usage(NULL);
@@ -1157,12 +1181,11 @@ int main(int argc, char *argv[])
 	msg_pdbg("The following protocols are supported: %s.\n", tempstr ? tempstr : "?");
 	free(tempstr);
 
-	// TODO: 动态读取芯片
+	// ws: 动态读取芯片
 	if (options.dynamic_extend)
 	{
 		printf("%s", options.dynamic_extend);
 		struct flashchip *extend_chip = NULL;
-		// TODO: fill chip by cJSON
 		if (parse_flashchip(options.dynamic_extend, extend_chip) != 0)
 		{
 			msg_perr("Error: Dynamic extend chip parse failed.\n");

@@ -997,7 +997,7 @@ static int parse_flashchip(const char *data, struct flashchip *chip)
 	chip->voltage.max = cjson_voltage_max->valueint;
 
 	char *str = cJSON_Print(cjson_obj);
-	printf("芯片信息总览:\n%s\n", str);
+	printf("Overview of chip parameters:\n%s\n", str);
 	free(str);
 
 	// cJSON_Delete(cjson_obj);
@@ -1184,19 +1184,18 @@ int main(int argc, char *argv[])
 	// ws: 动态读取芯片
 	if (options.dynamic_extend)
 	{
-		printf("%s", options.dynamic_extend);
 		struct flashchip *extend_chip = NULL;
 		extend_chip = malloc(sizeof(struct flashchip));
 		if (parse_flashchip(options.dynamic_extend, extend_chip) != 0)
 		{
-			msg_perr("芯片参数解析失败, 请检查参数后重试\n");
+			msg_perr("Failed to parse the chip parameters. Please check the parameters and try again\n");
 			ret = 1;
 			goto out_shutdown;
 		}
 		for (j = 0; j < registered_master_count; j++)
 		{
 			startchip = 0;
-			while (chipcount < (int)ARRAY_SIZE(flashes))
+			while (chipcount < 1)
 			{
 				startchip = probe_flash_dynamic_extend(&registered_masters[j], extend_chip, &flashes[chipcount]);
 				if (startchip == -1)
@@ -1207,7 +1206,7 @@ int main(int argc, char *argv[])
 		}
 		if (!chipcount)
 		{
-			msg_cinfo("未检测到设备, 请确认连接后重试\n");
+			msg_cinfo("No device is detected. Please confirm the connection and try again\n");
 			goto out_shutdown;
 		}
 		goto dynamic_extend;

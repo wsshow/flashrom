@@ -70,7 +70,7 @@ void start_logging(void)
 static const char *flashrom_progress_stage_to_string(enum flashrom_progress_stage stage)
 {
 	if (stage == FLASHROM_PROGRESS_READ)
-		return "READ";
+		return "正在读取";
 	if (stage == FLASHROM_PROGRESS_WRITE)
 		return "WRITE";
 	if (stage == FLASHROM_PROGRESS_ERASE)
@@ -89,7 +89,7 @@ void flashrom_progress_cb(struct flashrom_flashctx *flashctx)
 	if (percentages[progress_state->stage] != pc)
 	{
 		percentages[progress_state->stage] = pc;
-		msg_ginfo("[%s] %u%% complete... \n", flashrom_progress_stage_to_string(progress_state->stage), pc);
+		msg_ginfo("[%s] %u%% 已完成... \n", flashrom_progress_stage_to_string(progress_state->stage), pc);
 	}
 }
 

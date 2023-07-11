@@ -997,7 +997,7 @@ static int parse_flashchip(const char *data, struct flashchip *chip)
 	chip->voltage.max = cjson_voltage_max->valueint;
 
 	char *str = cJSON_Print(cjson_obj);
-	printf("%s\n", str);
+	printf("芯片信息总览:\n%s\n", str);
 	free(str);
 
 	// cJSON_Delete(cjson_obj);
@@ -1189,7 +1189,7 @@ int main(int argc, char *argv[])
 		extend_chip = malloc(sizeof(struct flashchip));
 		if (parse_flashchip(options.dynamic_extend, extend_chip) != 0)
 		{
-			msg_perr("Error: Dynamic extend chip parse failed.\n");
+			msg_perr("芯片参数解析失败, 请检查参数后重试\n");
 			ret = 1;
 			goto out_shutdown;
 		}
@@ -1207,7 +1207,7 @@ int main(int argc, char *argv[])
 		}
 		if (!chipcount)
 		{
-			msg_cinfo("No EEPROM/flash device found.\n");
+			msg_cinfo("未检测到设备, 请确认连接后重试\n");
 			goto out_shutdown;
 		}
 		goto dynamic_extend;
@@ -1308,7 +1308,7 @@ dynamic_extend:
 	if (options.show_progress)
 		flashrom_set_progress_callback(fill_flash, &flashrom_progress_cb, &progress_state);
 
-	print_chip_support_status(fill_flash->chip);
+	// print_chip_support_status(fill_flash->chip);
 
 	unsigned int limitexceeded = count_max_decode_exceedings(fill_flash, &max_rom_decode);
 	if (limitexceeded > 0 && !options.force)
